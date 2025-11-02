@@ -1,18 +1,23 @@
+import org.example.utils.Helpers
+
 def call(String imageName) {
-    stage('Docker Build & Push') {
-        sh "docker build -t ${imageName}:${env.BUILD_NUMBER} ."
+    def helper = new Helpers(this)
 
-        withCredentials([string(credentialsId: 'dockerhub-pass', variable: 'DOCKERHUB_PASS')]) {
-            sh '''
-                echo "$DOCKERHUB_PASS" | docker login -u abdomagdy --password-stdin
-                docker info | grep Username
-            '''
-        }
+    helper.startStage('Docker Build & Push')
+    helper.safeSh("docker build -t ${imageName}:${env.BUILD_NUMBER} .")
 
-        sh """
-            docker push ${imageName}:${env.BUILD_NUMBER}
-            docker tag ${imageName}:${env.BUILD_NUMBER} ${imageName}:latest
-            docker push ${imageName}:latest
-        """
+    withCredentials([string(credentialsId: 'dockerhub-pass', variable: 'DOCKERHUB_PASS')]) {
+        helper.safeSh('''
+            echo "$DOCKERHUB_PASS" | docker login -u abdomagdy --password-stdin
+            docker info | grep Username
+        ''')
     }
+
+    helper.safeSh("""
+        docker push ${imageName}:${env.BUILD_NUMBER}
+        docker tag ${imageName}:${env.BUILD_NUMBER} ${imageName}:latest
+        docker push ${imageName}:latest
+    """)
+
+    helper.endStage('Docker Build & Push')
 }
